@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Websocket test</title>
+    </head>
+    <body>
+        <script type="text/javascript">
+            ws1 = new WebSocket("ws://0.0.0.0:5050");
+            ws2 = new WebSocket("ws://0.0.0.0:5050");
+            ws1.onmessage = msg => console.log("ws1 received " + msg);
+            ws2.onmessage = msg => console.log("ws2 received " + msg);
+            ws1.onopen = () => ws1.send(JSON.stringify({"message_type": "create", "data": "1234"}));
+        </script>
+    </body>
+</html>
