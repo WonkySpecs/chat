@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket demo</title>
+    </head>
+    <body>
+        <script>
+            var ws = new WebSocket("ws://127.0.0.1:5050/");
+            ws.onmessage = function (event) {
+                messages = document.getElementById('messages');
+                message = document.createElement('li');
+                content = document.createTextNode(event.data);
+                message.appendChild(content);
+                messages.appendChild(message);
+            };
+        </script>
+        <input id="msg" />
+        <button onclick='ws.send(document.getElementById("msg").value)'>Send</button>
+        <ul id="messages" />
+    </body>
+</html>
