@@ -7,9 +7,48 @@
         <script type="text/javascript">
             ws1 = new WebSocket("ws://0.0.0.0:5050");
             ws2 = new WebSocket("ws://0.0.0.0:5050");
-            ws1.onmessage = msg => console.log("ws1 received " + msg);
-            ws2.onmessage = msg => console.log("ws2 received " + msg);
-            ws1.onopen = () => ws1.send(JSON.stringify({"message_type": "create", "data": "1234"}));
+            ws2open = false;
+            room_code = null;
+            ws1.onmessage = function(msg){
+                console.log("ws1 received", msg);
+                if(msg.data){
+                    res = JSON.parse(msg.data);
+                    if(res.data) {
+                        if(ws2open) {
+                            console.log("ws2 joining: " + res.data);
+                            ws2.send(join(res.data));
+                        } else {
+                            console.log("Storing room code: " + res.data);
+                            room_code = res.data;
+                        }
+                    }
+                }
+            }
+            ws2.onmessage = function(msg){
+                console.log("ws2 received", msg);
+                if(room_code){
+                    console.log("Sending an acutal message");
+                    ws2.send(message(room_code, "This is still unsound code but close enough"));
+                    room_code = null;
+                } else {
+                    console.log(room_code);
+                }
+            }
+            ws1.onopen = function(){
+                console.log("ws1 open");
+                ws1.send(JSON.stringify({"message_type": "create"}));
+            }
+            ws2.onopen = function() {
+                ws2open = true;
+                console.log("ws2 open");
+                if(room_code) {
+                    console.log("ws2 joining: " + room_code + " of it's own accord");
+                    ws2.send(join(room_code));
+                }
+            }
+            create = () => JSON.stringify({"message_type": "create"});
+            join = id => JSON.stringify({"message_type": "join", "room_id": id});
+            message = (id, msg) => JSON.stringify({"message_type": "message", "room_id": id, "data": msg});
         </script>
     </body>
 </html>

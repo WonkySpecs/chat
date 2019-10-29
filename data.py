@@ -1,6 +1,7 @@
 import random
 import string
 from enum import Enum, auto
+from typing import Optional
 
 
 class MessageType(Enum):
@@ -21,6 +22,33 @@ class Message:
         self.type = MessageType.from_str(message_type)
         self.data = data
         self.room_id = room_id
+
+
+class ResponseCode(Enum):
+    """
+    Using HTTP response codes until a better alternative presents itself
+    """
+    OK = 200
+    BAD_REQUEST = 400
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+
+    def default_message(self):
+        if self == ResponseCode.OK:
+            return "Success"
+        elif self == ResponseCode.BAD_REQUEST:
+            return "Bad request"
+        elif self == ResponseCode.FORBIDDEN:
+            return "Forbidden"
+        elif self == ResponseCode.NOT_FOUND:
+            return "Resource not found"
+
+
+class Response:
+    def __init__(self, response_code: ResponseCode=ResponseCode.OK, message: Optional[str]=None, data: Optional[str] = None):
+        self.response_code_value = response_code.value
+        self.message = message if message else response_code.default_message()
+        self.data = data
 
 
 class Room:
