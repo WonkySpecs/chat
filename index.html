@@ -4,18 +4,61 @@
         <title>WebSocket demo</title>
     </head>
     <body>
+        <main>
+            <div id="messageWindowContainer"></div>
+            <div id="chatTabContainer"></div>
+            <div id="chatMembers"></div>
+            <div id="messageInputContainer">
+                <input type="text" />
+                <button id="sendBtn">Send</button>
+            </div>
+        </main>
         <script>
+            function messageReceived(msg) {
+                // Get message window from container
+                // Format text
+                // Add message to window
+                // Notification on tab
+                console.log("Message received", msg);
+            }
+
+            function joinedRoom(msg) {
+                // Create new tab for room
+                // Switch to it + repopulate members?
+                console.log("Joining room", msg);
+            }
+
+            function createdRoom(msg) {
+                // Same as joined
+                console.log("Created room", msg);
+            }
             var ws = new WebSocket("ws://127.0.0.1:5050/");
-            ws.onmessage = function (event) {
-                messages = document.getElementById('messages');
-                message = document.createElement('li');
-                content = document.createTextNode(event.data);
-                message.appendChild(content);
-                messages.appendChild(message);
+            ws.onload = () => ws.send(create());
+            ws.onmessage = function (msg) {
+                if(msg.data === undefined) {
+                    // Error handling
+                    return
+                }
+
+                message = msg.data
+                switch(message.type) {
+                    case "message":
+                        messageReceived(message);
+                        break;
+                    case "joined":
+                        joinedRoom(message);
+                        break;
+                    case "create":
+                        createdRoom(message);
+                        break;
+                    default:
+                        console.log("Unkown message type: " + message.type);
+                }
             };
+            create = () => JSON.stringify({"message_type": "create"});
+            join = room_id => JSON.stringify({"message_type": "join", "room_id": room_id});
+            message = (room_id, msg) => JSON.stringify({"message_type": "message", "room_id": room_id, "data": msg});
+
         </script>
-        <input id="msg" />
-        <button onclick='ws.send(document.getElementById("msg").value)'>Send</button>
-        <ul id="messages" />
     </body>
 </html>
