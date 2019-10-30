@@ -33,14 +33,14 @@
                 console.log("Created room", msg);
             }
             var ws = new WebSocket("ws://127.0.0.1:5050/");
-            ws.onload = () => ws.send(create());
+            ws.onopen = () => ws.send(create());
             ws.onmessage = function (msg) {
                 if(msg.data === undefined) {
                     // Error handling
                     return
                 }
 
-                message = msg.data
+                let message = msg.data
                 switch(message.type) {
                     case "message":
                         messageReceived(message);
@@ -48,7 +48,7 @@
                     case "joined":
                         joinedRoom(message);
                         break;
-                    case "create":
+                    case "created":
                         createdRoom(message);
                         break;
                     default:

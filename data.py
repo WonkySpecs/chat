@@ -1,13 +1,16 @@
 import random
 import string
 from enum import Enum, auto
-from typing import Optional
+from typing import Optional, Union
 
 
 class MessageType(Enum):
     JOIN_ROOM = "join"
     CREATE_ROOM = "create"
     MESSAGE = "message"
+    JOINED = "joined"
+    CREATED = "created"
+    ERROR = "error"
 
     @staticmethod
     def from_str(s: str):
@@ -18,11 +21,13 @@ class MessageType(Enum):
 
 
 class Message:
-    def __init__(self, message_type=None, data=None, room_id=None):
-        self.type = MessageType.from_str(message_type)
+    def __init__(self, message_type=Union[MessageType, str], data=None, room_id=None):
+        if isinstance(message_type, str):
+            self.type = message_type
+        else:
+            self.type = message_type.value
         self.data = data
         self.room_id = room_id
-
 
 class ResponseCode(Enum):
     """
@@ -43,13 +48,10 @@ class ResponseCode(Enum):
         elif self == ResponseCode.NOT_FOUND:
             return "Resource not found"
 
-
-class Response:
-    def __init__(self, response_code: ResponseCode=ResponseCode.OK, message: Optional[str]=None, data: Optional[str] = None):
-        self.response_code_value = response_code.value
-        self.message = message if message else response_code.default_message()
-        self.data = data
-
+class ErrorMessage(Message):
+    def __init__(self, data=None, room_id=None, response_code=None):
+        super().__init__(message_type=MessageType.ERROR, data=data, room_id=room_id)
+        self.response_code = response_code
 
 class Room:
     def __init__(self, creator=None):
