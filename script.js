@@ -34,10 +34,6 @@ window.onload = function() {
 }
 
 function messageReceived(msg, ui, rooms, activeRoom) {
-    // Get message window from container
-    // Format text
-    // Add message to window
-    // Notification on tab
     console.log("Message received", msg);
     if(!rooms[msg.room_id]) {
         throw "Messsage received for a room client is not in, fix this";
@@ -64,6 +60,20 @@ function createdRoom(msg, ui) {
 function loadUI() {
     sendBtn = document.querySelector("#messageInputContainer button");
     messageInput = document.querySelector("#messageInputContainer input");
+    messageInput.addEventListener("keyup", ev => {
+        if(ev.key != "Enter") {
+            return;
+        }
+        sendBtn.click();
+    });
+
+    joinIdInput.addEventListener("keyup", ev => {
+        if(ev.key != "Enter") {
+            return;
+        }
+        sendBtn.click();
+    });
+
     return {
         sendBtn: sendBtn,
         messageInput: messageInput,
@@ -72,7 +82,7 @@ function loadUI() {
         messageWindow: document.getElementById("messageWindowContainer"),
         createBtn: document.getElementById("createBtn"),
         joinBtn: document.getElementById("joinBtn"),
-        joinId: document.getElementById("joinIdInput"),
+        joinIdInput: document.getElementById("joinIdInput"),
     }
 }
 
