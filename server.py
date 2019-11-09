@@ -23,14 +23,14 @@ async def handle_message(message: str, user_id: UUID) -> Optional[Message]:
         new_room = Room(creator=user_id)
         rooms[new_room.id] = new_room
         print(f"Room {new_room.id} created")
-        return Message(message_type=MessageType.CREATED, data=new_room.id)
+        return Message(message_type=MessageType.CREATED, room_id=new_room.id)
 
     elif message.type == MessageType.JOIN_ROOM.value:
         print(f"Joining room {message.room_id}")
         if message.room_id not in rooms:
             return ErrorMessage(response_code=ResponseCode.NOT_FOUND, message=f"Room {message.room_id} does not exist")
         rooms[message.room_id].join(user_id)
-        return Message(message_type=MessageType.JOINED, data=message.room_id)
+        return Message(message_type=MessageType.JOINED, room_id=message.room_id)
 
     elif message.type == MessageType.MESSAGE.value:
         if message.room_id not in rooms:
@@ -48,7 +48,7 @@ async def connect(websocket, path):
     connections[user_id] = websocket
     print(f"User {user_id} connected")
     async for message in websocket:
-        print(f"Message from user {user_id}")
+        print(f"Message from user {user_id}: {message}")
         response = await handle_message(message, user_id)
 
         if response:
