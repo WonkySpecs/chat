@@ -1,10 +1,14 @@
 window.onload = function() {
     console.log("Starting");
-    ui = loadUI();
+
     rooms = {}
     activeRoom = null
+
+    ui = loadUI();
     ui.sendBtn.onclick = ev => ws.send(buildMessage.message(activeRoom.id, ui.messageInput.value));
     ui.createBtn.onclick = ev => ws.send(buildMessage.create());
+    ui.joinBtn.onclick = ev => ws.send(buildMessage.join(ui.joinIdInput.value));
+
     ws = new WebSocket("ws://127.0.0.1:5050/");
     ws.onopen = () => ws.send(buildMessage.create());
     ws.onmessage = function (msg) {
@@ -21,10 +25,12 @@ window.onload = function() {
                 break;
             case "joined":
                 room = joinedRoom(message, ui);
+                activeRoom = room;
                 rooms[room.id] = room;
                 break;
             case "created":
                 room = createdRoom(message, ui);
+                activeRoom = room;
                 rooms[room.id] = room;
                 break;
             default:
@@ -97,7 +103,10 @@ class Room {
         this.id = id;
         this.tab = tab;
         this.messages = [];
-        this.tab.onclick = ev => bindMessageTab(this.messages)
+        this.tab.onclick = ev => {
+            bindMessageTab(this.messages);
+            activeRoom = this;  // Who doesn't love a good global variable
+        }
     }
 
     pushMessage(msg) {
