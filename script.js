@@ -4,6 +4,7 @@ window.onload = function() {
     rooms = {}
     activeRoom = null
     ui.sendBtn.onclick = ev => ws.send(buildMessage.message(activeRoom.id, ui.messageInput.value));
+    ui.createBtn.onclick = ev => ws.send(buildMessage.create());
     ws = new WebSocket("ws://127.0.0.1:5050/");
     ws.onopen = () => ws.send(buildMessage.create());
     ws.onmessage = function (msg) {
@@ -25,7 +26,6 @@ window.onload = function() {
             case "created":
                 room = createdRoom(message, ui);
                 rooms[room.id] = room;
-                activeRoom = room;
                 break;
             default:
                 console.log("Unkown message type: " + message.type);
@@ -43,8 +43,6 @@ function messageReceived(msg, ui, rooms, activeRoom) {
         throw "Messsage received for a room client is not in, fix this";
     }
     rooms[msg.room_id].pushMessage(msg.data);
-    console.log(rooms);
-    console.log(activeRoom);
     if(msg.room_id === activeRoom.id) {
         setMessageWindowContents(ui.messageWindow, rooms[msg.room_id].messages);
     }
@@ -71,7 +69,10 @@ function loadUI() {
         messageInput: messageInput,
         tabContainer: document.getElementById("chatTabContainer"),
         members: document.getElementById("chatMembers"),
-        messageWindow: document.getElementById("messageWindowContainer")
+        messageWindow: document.getElementById("messageWindowContainer"),
+        createBtn: document.getElementById("createBtn"),
+        joinBtn: document.getElementById("joinBtn"),
+        joinId: document.getElementById("joinIdInput"),
     }
 }
 
@@ -86,7 +87,7 @@ class Room {
         this.id = id;
         this.tab = tab;
         this.messages = [];
-        this.tab.onclick = bindMessageTab(this.messages)
+        this.tab.onclick = ev => bindMessageTab(this.messages)
     }
 
     pushMessage(msg) {
