@@ -77,7 +77,7 @@ function loadUI() {
         if(ev.key != "Enter") {
             return;
         }
-        sendBtn.click();
+        joinBtn.click();
     });
 
     return {
