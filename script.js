@@ -6,7 +6,7 @@ window.onload = function() {
         activeRoom: null,
     };
 
-    ui = loadUI();
+    ui = loadUIElements();
     ui.sendBtn.onclick = ev => {
         if(clientState.activeRoom) {
             ws.send(
@@ -53,7 +53,7 @@ function messageReceived(msg, ui, clientState) {
     room = clientState.rooms[msg.room_id];
     room.pushMessage(msg.data);
     if(msg.room_id === clientState.activeRoom.id) {
-        setMessageWindowContents(ui.messageWindow, room.messages);
+        displayNewMessage(ui.messageWindow, msg.data);
     }
 }
 
@@ -77,7 +77,7 @@ function createdRoom(msg, ui, clientState) {
     return joinedRoom(msg, ui, clientState);
 }
 
-function loadUI() {
+function loadUIElements() {
     sendBtn = document.querySelector("#messageInputContainer button");
     messageInput = document.querySelector("#messageInputContainer input");
     messageInput.addEventListener("keyup", ev => {
@@ -137,9 +137,11 @@ function bindMessageTabWrapper(messageWindow) {
 function setMessageWindowContents(messageWindow, messages) {
     console.log("Setting message window contents");
     messageWindow.innerHTML = "";
-    messages.forEach(function(msg) {
-        msgElement = document.createElement("p");
-        msgElement.textContent = msg;
-        messageWindow.appendChild(msgElement);
-    });
+    messages.forEach(msg => displayNewMessage(messageWindow, msg));
+}
+
+function displayNewMessage(messageWindow, message) {
+    msgElement = document.createElement("p");
+    msgElement.textContent = message;
+    messageWindow.appendChild(msgElement);
 }
