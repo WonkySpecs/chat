@@ -1,11 +1,20 @@
 window.onload = function() {
     console.log("Starting");
 
-    rooms = {}
-    activeRoom = null
+    clientState = {
+        rooms: {},
+        activeRoom: null,
+    };
 
     ui = loadUI();
-    ui.sendBtn.onclick = ev => ws.send(buildMessage.message(activeRoom.id, ui.messageInput.value));
+    ui.sendBtn.onclick = ev => {
+        if(clientState.activeRoom) {
+            ws.send(
+                buildMessage.message(
+                    clientState.activeRoom.id, ui.messageInput.value));
+        } else {
+            ui.messageWindow.textContent = "Join room before sending a message";
+        }};
     ui.createBtn.onclick = ev => ws.send(buildMessage.create());
     ui.joinBtn.onclick = ev => ws.send(buildMessage.join(ui.joinIdInput.value));
 
@@ -21,17 +30,13 @@ window.onload = function() {
         let message = JSON.parse(msg.data);
         switch(message.type) {
             case "message":
-                messageReceived(message, ui, rooms, activeRoom);
+                messageReceived(message, ui, clientState);
                 break;
             case "joined":
-                room = joinedRoom(message, ui);
-                activeRoom = room;
-                rooms[room.id] = room;
+                joinedRoom(message, ui, clientState);
                 break;
             case "created":
-                room = createdRoom(message, ui);
-                activeRoom = room;
-                rooms[room.id] = room;
+                createdRoom(message, ui, clientState);
                 break;
             default:
                 console.log("Unkown message type: " + message.type);
@@ -39,28 +44,37 @@ window.onload = function() {
     };
 }
 
-function messageReceived(msg, ui, rooms, activeRoom) {
+function messageReceived(msg, ui, clientState) {
     console.log("Message received", msg);
-    if(!rooms[msg.room_id]) {
+    if(!clientState.rooms[msg.room_id]) {
+        console.log(clientState);
         throw "Messsage received for a room client is not in, fix this";
     }
-    rooms[msg.room_id].pushMessage(msg.data);
-    if(msg.room_id === activeRoom.id) {
-        setMessageWindowContents(ui.messageWindow, rooms[msg.room_id].messages);
+    room = clientState.rooms[msg.room_id];
+    room.pushMessage(msg.data);
+    if(msg.room_id === clientState.activeRoom.id) {
+        setMessageWindowContents(ui.messageWindow, room.messages);
     }
 }
 
-function joinedRoom(msg, ui) {
+function joinedRoom(msg, ui, clientState) {
     console.log("Joining room", msg);
     let newTab = document.createElement("button");
     newTab.textContent = msg.room_id;
     ui.tabContainer.appendChild(newTab);
-    return new Room(msg.room_id, newTab, bindMessageTabWrapper(ui.messageWindow));
+    newRoom = new Room(
+        msg.room_id,
+        newTab,
+        bindMessageTabWrapper(ui.messageWindow),
+        clientState);
+    clientState.rooms[newRoom.id] = newRoom;
+    clientState.activeRoom = newRoom;
+    setMessageWindowContents(ui.messageWindow, []);
 }
 
-function createdRoom(msg, ui) {
-    console.log("Created room", msg);
-    return joinedRoom(msg, ui);
+function createdRoom(msg, ui, clientState) {
+    console.log("Creating room", msg);
+    return joinedRoom(msg, ui, clientState);
 }
 
 function loadUI() {
@@ -99,13 +113,13 @@ buildMessage = {
 }
 
 class Room {
-    constructor(id, tab, bindMessageTab) {
+    constructor(id, tab, bindMessageTab, clientState) {
         this.id = id;
         this.tab = tab;
         this.messages = [];
         this.tab.onclick = ev => {
             bindMessageTab(this.messages);
-            activeRoom = this;  // Who doesn't love a good global variable
+            clientState.activeRoom = this;
         }
     }
 
