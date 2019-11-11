@@ -18,25 +18,27 @@ window.onload = function() {
     ui.createBtn.onclick = ev => ws.send(buildMessage.create());
     ui.joinBtn.onclick = ev => ws.send(buildMessage.join(ui.joinIdInput.value));
 
+    stateSync = buildStateSync(ui, clientState);
+
     ws = new WebSocket("ws://127.0.0.1:5050/");
     ws.onopen = () => ws.send(buildMessage.create());
     ws.onmessage = function (msg) {
         console.log(msg);
         if(msg.data === undefined) {
-	    console.log("Message without data received", msg);
+            console.log("Message without data received", msg);
             return
         }
 
         let message = JSON.parse(msg.data);
         switch(message.type) {
             case "message":
-                messageReceived(message, ui, clientState);
+                stateSync.receiveMessage(message.room_id, message.data);
                 break;
             case "joined":
-                joinedRoom(message, ui, clientState);
+                stateSync.joinRoom(message.room_id);
                 break;
             case "created":
-                createdRoom(message, ui, clientState);
+                stateSync.joinRoom(message.room_id);
                 break;
             default:
                 console.log("Unkown message type: " + message.type);
@@ -44,37 +46,48 @@ window.onload = function() {
     };
 }
 
-function messageReceived(msg, ui, clientState) {
-    console.log("Message received", msg);
-    if(!clientState.rooms[msg.room_id]) {
-        console.log(clientState);
-        throw "Messsage received for a room client is not in, fix this";
+function buildStateSync(ui, clientState) {
+    return {
+        _ui: ui,
+        _state: clientState,
+        joinRoom: function(room_id) {
+            console.log("Joining room " + room_id);
+            let newTab = document.createElement("button");
+            newTab.textContent = room_id;
+            newTab.onclick = ev => this.changeActiveRoom(room_id);
+            this._ui.tabContainer.appendChild(newTab);
+            newRoom = new Room(room_id);
+            this._state.rooms[newRoom.id] = newRoom;
+            this.changeActiveRoom(room_id);
+        },
+        changeActiveRoom: function(room_id) {
+            if(this._state.rooms[room_id] === undefined) {
+                throw "Tried to switch to room " + room_id + " which is not a room";
+            }
+            newActiveRoom = this._state.rooms[room_id];
+            this._state.activeRoom = newActiveRoom;
+            this._setMessageWindowContents(newActiveRoom);
+        },
+        _setMessageWindowContents: function(room) {
+            this._ui.messageWindow.innerHTML = "";
+            room.messages.forEach(msg => this._displayNewMessage(this._ui.messageWindow, msg));
+        },
+        _displayNewMessage: function(messageWindow, message) {
+            msgElement = document.createElement("p");
+            msgElement.textContent = message;
+            messageWindow.appendChild(msgElement);
+        },
+        receiveMessage: function(room_id, message) {
+            if(this._state.rooms[room_id] === undefined) {
+                throw "Received message for room " + room_id + " which is not a room";
+            }
+            room = this._state.rooms[room_id];
+            room.pushMessage(message);
+            if(room_id === this._state.activeRoom.id) {
+                this._displayNewMessage(this._ui.messageWindow, message);
+            }
+        }
     }
-    room = clientState.rooms[msg.room_id];
-    room.pushMessage(msg.data);
-    if(msg.room_id === clientState.activeRoom.id) {
-        displayNewMessage(ui.messageWindow, msg.data);
-    }
-}
-
-function joinedRoom(msg, ui, clientState) {
-    console.log("Joining room", msg);
-    let newTab = document.createElement("button");
-    newTab.textContent = msg.room_id;
-    ui.tabContainer.appendChild(newTab);
-    newRoom = new Room(
-        msg.room_id,
-        newTab,
-        bindMessageTabWrapper(ui.messageWindow),
-        clientState);
-    clientState.rooms[newRoom.id] = newRoom;
-    clientState.activeRoom = newRoom;
-    setMessageWindowContents(ui.messageWindow, []);
-}
-
-function createdRoom(msg, ui, clientState) {
-    console.log("Creating room", msg);
-    return joinedRoom(msg, ui, clientState);
 }
 
 function loadUIElements() {
@@ -115,33 +128,10 @@ buildMessage = {
 class Room {
     constructor(id, tab, bindMessageTab, clientState) {
         this.id = id;
-        this.tab = tab;
         this.messages = [];
-        this.tab.onclick = ev => {
-            bindMessageTab(this.messages);
-            clientState.activeRoom = this;
-        }
     }
 
     pushMessage(msg) {
         this.messages.push(msg);
     }
-}
-
-function bindMessageTabWrapper(messageWindow) {
-    return function(messages) {
-        setMessageWindowContents(messageWindow, messages);
-    }
-}
-
-function setMessageWindowContents(messageWindow, messages) {
-    console.log("Setting message window contents");
-    messageWindow.innerHTML = "";
-    messages.forEach(msg => displayNewMessage(messageWindow, msg));
-}
-
-function displayNewMessage(messageWindow, message) {
-    msgElement = document.createElement("p");
-    msgElement.textContent = message;
-    messageWindow.appendChild(msgElement);
 }
